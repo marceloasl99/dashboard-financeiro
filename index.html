@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dashboard financeiro pessoal conectado ao Google Sheets">
+  <title>Dashboard Financeiro Pessoal</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --petroleo: #1B3A4B;
+      --petroleo-2: #244D61;
+      --areia: #EDE6D6;
+      --fundo: #F3EFE6;
+      --escuro: #10181C;
+      --branco: #FFFFFF;
+      --cinza: #6E7B81;
+      --linha: #DED5C4;
+      --verde: #2E6F5E;
+      --vermelho: #A04D43;
+      --sombra: 0 8px 24px rgba(16, 24, 28, .07);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--fundo); color: var(--escuro); }
+    button, input, select { font: inherit; }
+    header { background: var(--petroleo); color: white; }
+    .header-inner, main { width: min(1480px, calc(100% - 32px)); margin: 0 auto; }
+    .header-inner { min-height: 104px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 0; }
+    .eyebrow { display: flex; align-items: center; gap: 8px; color: #D8CEC0; text-transform: uppercase; letter-spacing: .17em; font-size: 11px; font-weight: 800; }
+    h1 { margin: 6px 0 0; font-size: clamp(25px, 3vw, 34px); line-height: 1.1; }
+    h2, h3, p { margin-top: 0; }
+    .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+    .status { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.08); color: var(--areia); font-size: 12px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #C7B996; }
+    .dot.ok { background: #8FC3AC; } .dot.error { background: #E49C8A; } .dot.loading { background: #E8D68D; }
+    .btn { border: 0; border-radius: 12px; padding: 11px 15px; cursor: pointer; font-weight: 800; transition: .18s ease; display: inline-flex; align-items: center; gap: 8px; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--areia); color: var(--escuro); }
+    .btn-secondary { color: white; border: 1px solid rgba(255,255,255,.25); background: transparent; }
+    .btn-dark { background: var(--petroleo); color: white; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    main { padding: 24px 0 40px; }
+    .connection { background: white; border: 1px solid var(--linha); border-radius: 18px; box-shadow: var(--sombra); padding: 20px; margin-bottom: 22px; display: none; }
+    .connection.open { display: block; }
+    .connection-grid { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 14px; }
+    label { display: block; font-size: 13px; font-weight: 800; margin-bottom: 8px; }
+    input, select { width: 100%; border: 1px solid #CFC6B5; border-radius: 12px; background: #FBF9F4; color: var(--escuro); padding: 11px 13px; outline: none; }
+    input:focus, select:focus { border-color: var(--petroleo); box-shadow: 0 0 0 3px rgba(27,58,75,.12); }
+    .tip { font-size: 12px; color: var(--cinza); margin: 8px 0 0; line-height: 1.5; }
+    .period { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 18px 0; }
+    .period-title small { color: #627177; text-transform: uppercase; letter-spacing: .16em; font-weight: 800; }
+    .period-title h2 { margin: 5px 0 0; font-size: 21px; }
+    .month-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 3px; }
+    .month { white-space: nowrap; border: 0; border-radius: 12px; padding: 10px 14px; background: white; color: #27383F; font-weight: 800; cursor: pointer; }
+    .month.active { background: var(--petroleo); color: white; }
+    .month:disabled { background: #E5DFD4; color: #9B978F; cursor: not-allowed; }
+    .month span { display: block; font-size: 9px; font-weight: 700; }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .card { background: white; border-radius: 18px; box-shadow: var(--sombra); overflow: hidden; }
+    .metric { padding: 21px; }
+    .metric-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: .15em; color: #60717A; font-weight: 800; }
+    .metric-value { margin-top: 9px; font-size: clamp(24px, 3vw, 34px); line-height: 1.05; font-weight: 850; letter-spacing: -.03em; }
+    .icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 13px; font-size: 20px; }
+    .icon.in { background: #E4F0EA; color: var(--verde); } .icon.out { background: #F4E8E3; color: var(--vermelho); } .icon.balance { background: #E7EEF1; color: var(--petroleo); }
+    .variation { margin-top: 17px; color: #7A878C; font-size: 12px; }
+    .variation strong.up { color: var(--verde); } .variation strong.down { color: var(--vermelho); }
+    .charts { display: grid; grid-template-columns: 2fr 3fr; gap: 16px; margin-top: 16px; }
+    .chart-card { padding: 20px; min-height: 410px; }
+    .chart-title { font-size: 18px; margin-bottom: 4px; }
+    .chart-subtitle { color: #718087; font-size: 13px; margin-bottom: 18px; }
+    .canvas-wrap { height: 315px; position: relative; }
+    .table-card { margin-top: 16px; }
+    .table-toolbar { padding: 20px; border-bottom: 1px solid #E9E2D6; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+    .table-toolbar h3 { margin-bottom: 4px; font-size: 18px; }
+    .table-toolbar p { color: #718087; font-size: 13px; margin-bottom: 0; }
+    .filters { display: flex; gap: 8px; }
+    .filters input, .filters select { width: 230px; }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; min-width: 780px; border-collapse: collapse; }
+    thead { background: var(--petroleo); color: white; }
+    th { text-align: left; padding: 13px 20px; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; }
+    td { padding: 13px 20px; border-bottom: 1px solid #EEE8DC; font-size: 14px; }
+    tbody tr:hover { background: #FAF7F1; }
+    .right { text-align: right; }
+    .tag { display: inline-block; background: var(--areia); border-radius: 999px; padding: 5px 9px; font-size: 11px; font-weight: 800; }
+    .income { color: var(--verde); font-weight: 800; } .expense { color: var(--vermelho); font-weight: 800; }
+    .empty { color: #748187; text-align: center; padding: 42px; }
+    footer { color: #7B8588; text-align: center; font-size: 11px; margin-top: 22px; }
+    .spin { display: inline-block; animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 900px) { .header-inner, .period, .table-toolbar { align-items: stretch; flex-direction: column; } .actions { justify-content: flex-start; } .metrics, .charts { grid-template-columns: 1fr; } .connection-grid { grid-template-columns: 1fr; } .filters { flex-direction: column; } .filters input, .filters select { width: 100%; } .charts .card { min-height: 380px; } }
+    @media (max-width: 560px) { .header-inner, main { width: min(100% - 20px, 1480px); } .status { width: 100%; } .actions .btn { flex: 1; justify-content: center; } .metrics { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div><div class="eyebrow">▣ Controle financeiro</div><h1>Visão geral pessoal</h1></div>
+      <div class="actions">
+        <div class="status"><span id="statusDot" class="dot"></span><span id="statusText">Modo demonstração — conecte sua planilha</span></div>
+        <button id="connectionButton" class="btn btn-secondary">⚙ Conexão</button>
+        <button id="refreshButton" class="btn btn-primary" disabled>↻ Atualizar dados</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="connectionPanel" class="connection open">
+      <div class="connection-grid">
+        <div><label for="sheetUrl">Link ou ID do Google Sheets</label><input id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/SEU_ID/edit"><p class="tip">A planilha deve estar publicada na web ou compartilhada como “qualquer pessoa com o link — leitor”. O link fica salvo somente neste navegador.</p></div>
+        <button id="connectButton" class="btn btn-dark">Conectar e carregar</button>
+      </div>
+    </section>
+
+    <section class="period">
+      <div class="period-title"><small>Período analisado</small><h2 id="periodHeading">Junho de 2026</h2></div>
+      <div id="monthTabs" class="month-tabs"></div>
+    </section>
+
+    <section class="metrics">
+      <article class="card metric"><div class="metric-top"><div><div class="metric-label">Total de entradas</div><div id="incomeValue" class="metric-value">R$ 0,00</div></div><div class="icon in">↗</div></div><div id="incomeVar" class="variation">Sem base no mês anterior</div></article>
+      <article class="card metric"><div class="metric-top"><div><div class="metric-label">Total de saídas</div><div id="expenseValue" class="metric-value">R$ 0,00</div></div><div class="icon out">↘</div></div><div id="expenseVar" class="variation">Sem base no mês anterior</div></article>
+      <article class="card metric"><div class="metric-top"><div><div class="metric-label">Saldo do mês</div><div id="balanceValue" class="metric-value">R$ 0,00</div></div><div class="icon balance">▣</div></div><div id="balanceVar" class="variation">Sem base no mês anterior</div></article>
+    </section>
+
+    <section class="charts">
+      <article class="card chart-card"><h3 class="chart-title">Gastos por categoria</h3><p id="pieSubtitle" class="chart-subtitle">Distribuição das saídas</p><div class="canvas-wrap"><canvas id="pieChart"></canvas></div></article>
+      <article class="card chart-card"><h3 class="chart-title">Entradas x saídas</h3><p class="chart-subtitle">Comparativo dos meses com lançamentos</p><div class="canvas-wrap"><canvas id="barChart"></canvas></div></article>
+    </section>
+
+    <section class="card table-card">
+      <div class="table-toolbar"><div><h3>Lançamentos</h3><p id="recordCount">0 registro(s) exibido(s)</p></div><div class="filters"><input id="searchInput" placeholder="Buscar lançamento"><select id="categoryFilter"><option>Todas</option></select></div></div>
+      <div class="table-scroll"><table><thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th class="right">Entrada</th><th class="right">Saída</th></tr></thead><tbody id="transactionBody"></tbody></table></div>
+    </section>
+    <footer>Atualização automática ao abrir e sob demanda • Fonte: Google Sheets</footer>
+  </main>
+
+<script>
+const MONTHS = ["Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const EXPENSE_CATEGORIES = ["Moradia","Contas","Alimentação","Transporte","Saúde","Pet","Assinaturas","Educação","Lazer","Cuidados pessoais","Compras","Imprevistos/Outros"];
+const COLORS = ["#1B3A4B","#2C5B6F","#4D7A89","#7697A2","#A5B9BD","#C7B996","#9D835C","#735E45","#486A60","#758F83","#A46A5D","#C29A8B"];
+const money = new Intl.NumberFormat("pt-BR", {style:"currency", currency:"BRL"});
+const sampleData = {
+  Maio:[{date:"01/05/2026",category:"Pró-labore/Salário",description:"Salário mensal",income:8500,expense:0},{date:"01/05/2026",category:"Moradia",description:"Aluguel",income:0,expense:2450},{date:"02/05/2026",category:"Alimentação",description:"Supermercado",income:0,expense:486.72},{date:"04/05/2026",category:"Transporte",description:"Combustível",income:0,expense:220},{date:"05/05/2026",category:"Contas",description:"Energia e internet",income:0,expense:304.26},{date:"13/05/2026",category:"Extra",description:"Freelance técnico",income:750,expense:0}],
+  Junho:[{date:"01/06/2026",category:"Pró-labore/Salário",description:"Salário mensal",income:8500,expense:0},{date:"01/06/2026",category:"Moradia",description:"Aluguel",income:0,expense:2450},{date:"02/06/2026",category:"Alimentação",description:"Supermercado",income:0,expense:512.38},{date:"03/06/2026",category:"Transporte",description:"Combustível",income:0,expense:230},{date:"12/06/2026",category:"Extra",description:"Suporte técnico",income:620,expense:0}],
+  Julho:[],Agosto:[],Setembro:[],Outubro:[],Novembro:[],Dezembro:[]
+};
+let data = structuredClone(sampleData), selectedMonth = "Junho", pieChart, barChart;
+const $ = id => document.getElementById(id);
+const sum = (rows,key) => rows.reduce((a,r)=>a+(Number(r[key])||0),0);
+function extractSheetId(value){ return value.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/)?.[1] || value.match(/^[a-zA-Z0-9-_]{20,}$/)?.[0] || ""; }
+function parseCSV(text){ const rows=[]; let row=[],field="",quoted=false; for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1]; if(c==='"'&&quoted&&n==='"'){field+='"';i++;}else if(c==='"')quoted=!quoted;else if(c===','&&!quoted){row.push(field);field="";}else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&n==='\n')i++;row.push(field);field="";if(row.some(v=>v.trim()!==""))rows.push(row);row=[];}else field+=c;} if(field.length||row.length){row.push(field);rows.push(row);} return rows; }
+function asNumber(value){ if(value==null||value==="")return 0; let s=String(value).replace(/R\$/gi,"").replace(/\s/g,""); if(s.includes(",")&&s.includes("."))s=s.replace(/\./g,"").replace(",", "."); else if(s.includes(","))s=s.replace(",", "."); return Number(s.replace(/[^0-9.-]/g,""))||0; }
+function normalizeRows(csv){ const rows=parseCSV(csv); if(rows.length<2)return[]; const h=rows[0].map(x=>x.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")); const find=t=>h.findIndex(x=>x.includes(t)); const idx={date:find("data"),category:find("categoria"),description:find("descricao"),income:find("entrada"),expense:find("saida")}; if(Object.values(idx).some(i=>i<0))throw new Error("Cabeçalhos não encontrados em uma das abas."); return rows.slice(1).filter(r=>r.some(v=>String(v).trim())).map(r=>({date:r[idx.date]?.trim()||"—",category:r[idx.category]?.trim()||"Sem categoria",description:r[idx.description]?.trim()||"—",income:asNumber(r[idx.income]),expense:asNumber(r[idx.expense])})); }
+function setStatus(text,type=""){ $("statusText").textContent=text; $("statusDot").className="dot "+type; }
+function variation(current,previous){ return previous===0?null:((current-previous)/Math.abs(previous))*100; }
+function renderVariation(id,value){ const el=$(id); if(value==null){el.textContent="Sem base no mês anterior";return;} const up=value>=0; el.innerHTML=`<strong class="${up?'up':'down'}">${up?'↗':'↘'} ${value>0?'+':''}${value.toLocaleString('pt-BR',{maximumFractionDigits:1})}%</strong> vs. mês anterior`; }
+function renderMonths(){ $("monthTabs").innerHTML=MONTHS.map(m=>{const has=data[m]?.length>0;return `<button class="month ${m===selectedMonth?'active':''}" data-month="${m}" ${has?'':'disabled'}>${m}${has?'':'<span>sem dados</span>'}</button>`}).join(""); document.querySelectorAll('.month:not(:disabled)').forEach(b=>b.onclick=()=>{selectedMonth=b.dataset.month;$("categoryFilter").value="Todas";render();}); }
+function renderMetrics(){ const rows=data[selectedMonth]||[],i=MONTHS.indexOf(selectedMonth),prev=i>0?(data[MONTHS[i-1]]||[]):[]; const inc=sum(rows,"income"), exp=sum(rows,"expense"), bal=inc-exp; const pinc=sum(prev,"income"),pexp=sum(prev,"expense"),pbal=pinc-pexp; $("incomeValue").textContent=money.format(inc);$("expenseValue").textContent=money.format(exp);$("balanceValue").textContent=money.format(bal);renderVariation("incomeVar",variation(inc,pinc));renderVariation("expenseVar",variation(exp,pexp));renderVariation("balanceVar",variation(bal,pbal)); }
+function renderCharts(){ const rows=data[selectedMonth]||[]; const pieData=EXPENSE_CATEGORIES.map(c=>({name:c,value:rows.filter(r=>r.category===c).reduce((a,r)=>a+r.expense,0)})).filter(x=>x.value>0); pieChart?.destroy(); pieChart=new Chart($("pieChart"),{type:"doughnut",data:{labels:pieData.map(x=>x.name),datasets:[{data:pieData.map(x=>x.value),backgroundColor:COLORS,borderColor:"#fff",borderWidth:3}]},options:{maintainAspectRatio:false,cutout:"58%",plugins:{legend:{position:"bottom",labels:{boxWidth:10,usePointStyle:true,font:{size:10}}},tooltip:{callbacks:{label:c=>`${c.label}: ${money.format(c.raw)}`}}}}}); const monthly=MONTHS.map(m=>({month:m.slice(0,3),income:sum(data[m]||[],"income"),expense:sum(data[m]||[],"expense"),has:(data[m]||[]).length>0})).filter(x=>x.has); barChart?.destroy();barChart=new Chart($("barChart"),{type:"bar",data:{labels:monthly.map(x=>x.month),datasets:[{label:"Entradas",data:monthly.map(x=>x.income),backgroundColor:"#1B3A4B",borderRadius:7},{label:"Saídas",data:monthly.map(x=>x.expense),backgroundColor:"#C7B996",borderRadius:7}]},options:{maintainAspectRatio:false,scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:"#E9E2D6"},ticks:{callback:v=>`${Math.round(v/1000)}k`}}},plugins:{legend:{position:"bottom"},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${money.format(c.raw)}`}}}}}); }
+function renderCategories(){ const rows=data[selectedMonth]||[],current=$("categoryFilter").value||"Todas"; const cats=["Todas",...new Set(rows.map(r=>r.category).sort())]; $("categoryFilter").innerHTML=cats.map(c=>`<option ${c===current?'selected':''}>${c}</option>`).join(""); }
+function escapeHTML(s){ return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+function renderTable(){ const q=$("searchInput").value.toLowerCase(),cat=$("categoryFilter").value; const rows=(data[selectedMonth]||[]).filter(r=>(cat==="Todas"||r.category===cat)&&`${r.date} ${r.category} ${r.description}`.toLowerCase().includes(q)); $("recordCount").textContent=`${rows.length} registro(s) exibido(s)`; $("transactionBody").innerHTML=rows.length?rows.map(r=>`<tr><td>${escapeHTML(r.date)}</td><td><span class="tag">${escapeHTML(r.category)}</span></td><td>${escapeHTML(r.description)}</td><td class="right income">${r.income?money.format(r.income):'—'}</td><td class="right expense">${r.expense?money.format(r.expense):'—'}</td></tr>`).join(""):`<tr><td colspan="5" class="empty">Nenhum lançamento encontrado.</td></tr>`; }
+function render(){ $("periodHeading").textContent=`${selectedMonth} de 2026`;$("pieSubtitle").textContent=`Distribuição das saídas em ${selectedMonth.toLowerCase()}`;renderMonths();renderMetrics();renderCategories();renderCharts();renderTable(); }
+async function refresh(){ const raw=$("sheetUrl").value.trim()||localStorage.getItem("finance-sheet-url")||"",id=extractSheetId(raw); if(!id){setStatus("Informe um link ou ID válido.","error");$("connectionPanel").classList.add("open");return;} $("refreshButton").disabled=true;$("refreshButton").innerHTML='<span class="spin">↻</span> Atualizando';setStatus("Lendo dados do Google Sheets…","loading"); try{ const pairs=await Promise.all(MONTHS.map(async m=>{const url=`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(m)}&t=${Date.now()}`;const res=await fetch(url,{cache:"no-store"});if(!res.ok)throw new Error(`Falha ao ler ${m} (${res.status}).`);const text=await res.text();if(/<!doctype|<html/i.test(text))throw new Error(`A aba ${m} não está acessível. Publique a planilha para leitura.`);return[m,normalizeRows(text)];})); data=Object.fromEntries(pairs); const latest=[...MONTHS].reverse().find(m=>data[m]?.length)||"Maio";if(!data[selectedMonth]?.length)selectedMonth=latest;localStorage.setItem("finance-sheet-url",raw);$("sheetUrl").value=raw;$("connectionPanel").classList.remove("open");setStatus(`Dados atualizados às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`,"ok");render();}catch(e){setStatus(e.message||"Não foi possível carregar a planilha.","error");$("connectionPanel").classList.add("open");}finally{$("refreshButton").disabled=false;$("refreshButton").innerHTML='↻ Atualizar dados';} }
+$("connectionButton").onclick=()=>$("connectionPanel").classList.toggle("open");$("connectButton").onclick=refresh;$("refreshButton").onclick=refresh;$("searchInput").oninput=renderTable;$("categoryFilter").onchange=renderTable;
+const saved=localStorage.getItem("finance-sheet-url");if(saved){$("sheetUrl").value=saved;$("refreshButton").disabled=false;refresh();}else render();
+</script>
+</body>
+</html>
