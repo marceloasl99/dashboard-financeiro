@@ -150,6 +150,6 @@ This is a public static dashboard architecture. Do not publish bank accounts, ca
 
 ## Author
 
-**Marcelo Augusto Sartori Lopes**
+**Marcelo Lopes**
 
 GitHub: https://github.com/marceloasl99
