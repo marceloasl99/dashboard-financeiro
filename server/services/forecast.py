@@ -11,7 +11,7 @@ from server.storage.base import Repository
 def events(repo: Repository, today: date, until: date) -> dict[str, int]:
     """Signed cash movements per day, from today (exclusive) to `until`."""
     txs = repo.list("transactions")
-    active = {a.id for a in repo.list("accounts") if not a.archived}
+    active = {a.id for a in repo.list("accounts") if not a.archived and a.type != "fgts"}
     out: dict[str, int] = {}
 
     def add(d: str, v: int):
@@ -43,7 +43,7 @@ def events(repo: Repository, today: date, until: date) -> dict[str, int]:
 
 def build(repo: Repository, today: date, days: int = 90) -> dict:
     until = today + timedelta(days=days)
-    bal = total_balance(repo.list("accounts"), repo.list("transactions"))
+    bal = total_balance([a for a in repo.list("accounts") if a.type != "fgts"], repo.list("transactions"))
     ev = events(repo, today, until)
     series = [{"date": today.isoformat(), "balance": bal}]
     first_negative = None

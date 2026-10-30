@@ -33,6 +33,7 @@ def test_transfer_moves_between_accounts(tmp_path):
 def test_forecast_first_negative_includes_statement(tmp_path):
     repo, a, b, card, food = setup(tmp_path)
     repo.update("accounts", b.id, {"archived": True})
+    repo.add("accounts", Account(name="FGTS", type="fgts", initial_balance=999999))  # not liquid: ignored
     repo.add("transactions", Transaction(date="2026-10-20", amount=150000, card_id=card.id, category_id=food.id))
     f = forecast.build(repo, today=date(2026, 10, 30), days=30)
     assert f["series"][0]["balance"] == 100000
