@@ -91,7 +91,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .nav a.active { background: rgba(255,255,255,.16); color: #fff; }
 .sidebar-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px; }
 .sync { font-size: 12px; color: rgba(244,242,238,.6); }
-.main { margin-left: var(--sidebar); padding: 20px 28px 96px; max-width: calc(1240px + var(--sidebar)); }
+.main { margin-left: var(--sidebar); padding: 20px 28px 96px; max-width: calc(1240px + var(--sidebar)); overflow-x: clip; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; min-height: 40px; }
 .page-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .view { display: grid; gap: 16px; }
@@ -152,6 +152,7 @@ input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--ne
 .grid-2 { display: grid; grid-template-columns: 1.1fr .9fr; gap: 16px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.grid-2 > *, .grid-3 > *, .grid-4 > *, .view > * { min-width: 0; }
 .chart { position: relative; height: 280px; }
 .chart.short { height: 220px; }
 .chart.tall { height: 340px; }
@@ -298,6 +299,7 @@ tr.planned td .t { font-style: italic; }
   .tabbar a.active { color: var(--brand); font-weight: 600; }
   :root[data-theme="dark"] .tabbar a.active { color: #5fa3c4; }
   .fab { bottom: calc(68px + env(safe-area-inset-bottom)); right: 14px; padding: 12px; }
+  .toasts { bottom: calc(124px + env(safe-area-inset-bottom)); left: 16px; right: 16px; align-items: center; }
   .fab span { display: none; }
   .chart { height: 240px; }
   .cal .day { min-height: 56px; padding: 4px; }

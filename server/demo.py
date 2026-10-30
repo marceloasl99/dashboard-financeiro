@@ -218,10 +218,6 @@ def build_demo(today: date, seed: int = 42) -> Database:
             d = clamp_day(ref.year, ref.month, rng.randint(5, 25))
             db.contributions.append(ent(Contribution, investment_id=inv.id, date=d.isoformat(),
                                         amount=base + (rest if i == 0 else 0)))
-    fgts = ent(Investment, asset="FGTS", institution="Caixa Econômica", quantity=1,
-               cost=fgts_acc.initial_balance, current_value=fgts_acc.initial_balance + 784_00 * 13,
-               liquidity="Saque-rescisão / aniversário", **{"class": "FGTS"})
-    db.investments.append(fgts)
 
     # --- goals, budgets, rules ------------------------------------------------
     db.goals = [
