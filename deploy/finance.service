@@ -1,0 +1,22 @@
+[Unit]
+Description=Finance OS (FastAPI)
+After=network.target
+
+[Service]
+Type=simple
+User=finance
+Group=finance
+WorkingDirectory=/opt/finance-os
+Environment=FINANCE_DATA_DIR=/opt/finance-os/data
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/finance-os/.venv/bin/uvicorn server.main:app --host 127.0.0.1 --port 8000 --proxy-headers
+Restart=always
+RestartSec=3
+# hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/opt/finance-os/data
+
+[Install]
+WantedBy=multi-user.target
