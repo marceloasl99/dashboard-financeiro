@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from server.deps import get_repo
 from server.errors import ApiError
 from server.models import Installment, Transaction, TransactionKind, TransactionStatus
-from server.services.categorizer_stub import normalize
+from server.services.categorizer import normalize
 from server.services.installments import build_installments
 from server.storage.base import Repository
 
