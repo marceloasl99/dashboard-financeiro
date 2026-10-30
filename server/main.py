@@ -5,7 +5,10 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from server import errors
-from server.routers import cards, crud, transactions
+from datetime import date
+
+from server.routers import cards, crud, recurrences, transactions
+from server.services.recurrences import materialize
 from server.storage.json_repo import JsonRepository
 
 VERSION = "2.0.0-beta"
@@ -29,15 +32,17 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
     app.state.data_dir = data_dir
     app.state.repo = JsonRepository(data_dir / "finance.json", data_dir / "backups")
     errors.install(app)
+    materialize(app.state.repo, date.today())
 
     @app.get("/api/health")
     def health():
         return {"status": "ok", "version": VERSION}
 
     for kind in CRUD_COLLECTIONS:
-        if kind != "transactions":
+        if kind not in ("transactions", "recurrences"):
             app.include_router(crud.make_router(kind))
     app.include_router(transactions.router)
+    app.include_router(recurrences.router)
     app.include_router(crud.settings_router())
     app.include_router(cards.router)
 
