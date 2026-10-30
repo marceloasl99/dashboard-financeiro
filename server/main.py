@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from server import errors
-from server.routers import crud
+from server.routers import cards, crud
 from server.storage.json_repo import JsonRepository
 
 VERSION = "2.0.0-beta"
@@ -37,6 +37,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
     for kind in CRUD_COLLECTIONS:
         app.include_router(crud.make_router(kind))
     app.include_router(crud.settings_router())
+    app.include_router(cards.router)
 
     app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
     return app
