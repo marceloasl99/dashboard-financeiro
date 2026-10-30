@@ -45,17 +45,20 @@ def _row(rec: Recurrence, d: date, amount: int | None = None, status: str = "pla
     return Transaction(date=d.isoformat(), amount=amount or rec.amount, kind=rec.kind,
                        category_id=rec.category_id, account_id=rec.account_id, card_id=rec.card_id,
                        to_account_id=rec.to_account_id, goal_id=rec.goal_id,
-                       description=rec.description, recurrence_id=rec.id, status=status)
+                       description=rec.description, recurrence_id=rec.id, recurrence_date=d.isoformat(),
+                       status=status)
 
 
 def materialize(repo: Repository, today: date, rec_id: str | None = None) -> int:
     until = add_months(today, HORIZON_MONTHS)
-    existing = {(t.recurrence_id, t.date) for t in repo.list("transactions") if t.recurrence_id}
+    existing = {(t.recurrence_id, t.recurrence_date or t.date) for t in repo.list("transactions") if t.recurrence_id}
     new: list[Transaction] = []
     for rec in repo.list("recurrences"):
         if rec_id and rec.id != rec_id:
             continue
         for d in occurrences(rec, until):
+            if d.isoformat() in rec.skipped_dates:
+                continue
             if (rec.id, d.isoformat()) not in existing:
                 new.append(_row(rec, d))
     if new:
@@ -68,7 +71,7 @@ def confirm(repo: Repository, rec_id: str, d: date, amount: int) -> Transaction:
     if rec is None:
         raise KeyError(rec_id)
     for t in repo.list("transactions"):
-        if t.recurrence_id == rec_id and t.date == d.isoformat():
+        if t.recurrence_id == rec_id and (t.recurrence_date or t.date) == d.isoformat():
             return repo.update("transactions", t.id, {"status": "settled", "amount": amount})
     return repo.add("transactions", _row(rec, d, amount, "settled"))
 

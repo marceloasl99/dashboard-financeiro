@@ -39,7 +39,7 @@ def parse_amount_br(s: str | float | int | None) -> int | None:
         text = text.replace(".", "").replace(",", ".") if text.rfind(",") > text.rfind(".") else text.replace(",", "")
     elif "," in text:
         text = text.replace(",", ".")
-    elif text.count(".") > 1:
+    elif text.count(".") > 1 or re.fullmatch(r"\d{1,3}\.\d{3}", text):
         text = text.replace(".", "")
     try:
         value = round(float(text) * 100)

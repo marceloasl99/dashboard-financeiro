@@ -17,8 +17,11 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="data/finance.json")
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--force", action="store_true", help="sobrescreve um arquivo existente")
     args = ap.parse_args()
     out = Path(args.out)
+    if out.exists() and not args.force:
+        sys.exit(f"{out} já existe. Use --force para substituir (pare o serviço antes, senão ele grava por cima).")
     repo = JsonRepository(out, out.parent / "backups")
     db = build_demo(today=date.today(), seed=args.seed)
     repo.replace_all(db)

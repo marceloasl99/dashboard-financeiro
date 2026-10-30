@@ -1,4 +1,5 @@
 """Transactions: filtered listing, validation of account/card, installments, scoped edits."""
+import re
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Response
@@ -117,10 +118,9 @@ def update(id: str, body: dict, scope: Literal["one", "remaining"] = "one",
     result = None
     for t in _group(repo, tx, scope):
         data = dict(body)
-        if t.installment and "description" in data and t.id != tx.id:
-            data["description"] = f"{data['description']} ({t.installment.number}/{t.installment.total})"
-        elif t.installment and "description" in data:
-            data["description"] = f"{data['description']} ({t.installment.number}/{t.installment.total})"
+        if t.installment and "description" in data:
+            base = re.sub(r"\s*\(\d+/\d+\)\s*$", "", data["description"] or "")
+            data["description"] = f"{base} ({t.installment.number}/{t.installment.total})".strip()
         if t.id != tx.id:
             data.pop("date", None)
             data.pop("amount", None)
@@ -135,5 +135,12 @@ def delete(id: str, scope: Literal["one", "remaining"] = "one", repo: Repository
     tx = repo.get("transactions", id)
     if tx is None:
         raise ApiError(404, "Lançamento não encontrado.")
-    repo.delete_many("transactions", [t.id for t in _group(repo, tx, scope)])
+    group = _group(repo, tx, scope)
+    for t in group:  # deleting a planned occurrence must not come back on the next materialize
+        if t.recurrence_id and t.status == "planned":
+            rec = repo.get("recurrences", t.recurrence_id)
+            key = t.recurrence_date or t.date
+            if rec is not None and key not in rec.skipped_dates:
+                repo.update("recurrences", rec.id, {"skipped_dates": [*rec.skipped_dates, key]})
+    repo.delete_many("transactions", [t.id for t in group])
     return Response(status_code=204)

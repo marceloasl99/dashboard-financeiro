@@ -74,7 +74,7 @@ export async function render(view, tools, params) {
     });
     q('#rows').querySelectorAll('[data-confirm]').forEach(b => b.onclick = async () => {
       const t = rows.find(x => x.id === b.dataset.confirm);
-      if (t.recurrence_id) await api.post(`/recurrences/${t.recurrence_id}/confirm`, { date: t.date, amount: t.amount });
+      if (t.recurrence_id) await api.post(`/recurrences/${t.recurrence_id}/confirm`, { date: t.recurrence_date || t.date, amount: t.amount });
       else await api.put(`/transactions/${t.id}`, { status: 'settled' });
       toast('Confirmado', 'success');
       emit('data-changed');

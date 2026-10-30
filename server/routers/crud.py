@@ -40,10 +40,11 @@ def check_unlinked(repo: Repository, kind: str, id: str) -> None:
     for tx in repo.list("transactions"):
         if any(getattr(tx, r, None) == id for r in refs):
             raise ApiError(409, LINKED_MESSAGE)
-    if kind == "categories":
-        for rec in repo.list("recurrences"):
-            if rec.category_id == id:
-                raise ApiError(409, LINKED_MESSAGE)
+    rec_refs = {"accounts": ("account_id", "to_account_id"), "cards": ("card_id",),
+                "categories": ("category_id",), "goals": ("goal_id",)}.get(kind, ())
+    for rec in repo.list("recurrences"):
+        if any(getattr(rec, r, None) == id for r in rec_refs):
+            raise ApiError(409, "Existe uma recorrência usando este item; edite ou exclua a recorrência antes.")
 
 
 def make_router(kind: str, model: type[Entity] | None = None) -> APIRouter:

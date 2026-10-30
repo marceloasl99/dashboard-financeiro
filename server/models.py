@@ -76,6 +76,7 @@ class Transaction(Entity):
     tags: list[str] = Field(default_factory=list)
     installment: Installment | None = None
     recurrence_id: str | None = None
+    recurrence_date: str | None = None  # original occurrence date; survives moving the row
     import_id: str | None = None
     goal_id: str | None = None
     status: TransactionStatus = "settled"
@@ -95,6 +96,7 @@ class Recurrence(Entity):
     start_date: str
     end_date: str | None = None
     active: bool = True
+    skipped_dates: list[str] = Field(default_factory=list)  # planned occurrences the user deleted
 
 
 class Budget(Entity):

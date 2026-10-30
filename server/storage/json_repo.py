@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import tempfile
 import threading
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from server.models import COLLECTIONS, Database, Entity, Settings, default_categories, now_iso
@@ -35,10 +36,20 @@ class JsonRepository(Repository):
         return getattr(self._db, kind)
 
     def _write(self) -> None:
-        tmp = self.path.with_suffix(".json.tmp")
-        payload = self._db.model_dump(by_alias=True)
-        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
-        os.replace(tmp, self.path)
+        payload = json.dumps(self._db.model_dump(by_alias=True), ensure_ascii=False, indent=1)
+        fd, tmp = tempfile.mkstemp(prefix=self.path.name + ".", suffix=".tmp", dir=self.path.parent)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(payload)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, self.path)
+        except BaseException:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
         self.backup_today()
 
     def backup_today(self, suffix: str = "") -> Path | None:
@@ -46,6 +57,9 @@ class JsonRepository(Repository):
             return None
         today = date.today()
         target = self.backups_dir / f"finance-{today.isoformat()}{suffix}.json"
+        if suffix and target.exists():  # explicit backups (pre-restore) are never skipped or overwritten
+            stamp = datetime.now().strftime("%H%M%S%f")
+            target = self.backups_dir / f"finance-{today.isoformat()}{suffix}-{stamp}.json"
         if target.exists():
             return target
         shutil.copyfile(self.path, target)
