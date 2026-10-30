@@ -71,6 +71,8 @@ def build(repo: Repository, year: int, month: int, today: date | None = None) ->
         for s in build_statements(card, txs, txs, today):
             if s.status == "paid" or s.total <= 0:
                 continue
+            if s.status == "open" and s.start > today + timedelta(days=35):
+                continue  # only the current statement and the next one
             statements.append({"card_id": card.id, "card_name": card.name, "color": card.color,
                                "period": s.period, "total": s.total, "paid": s.paid,
                                "due_date": s.due_date.isoformat(), "end": s.end.isoformat(),

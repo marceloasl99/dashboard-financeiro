@@ -182,7 +182,7 @@ def build_demo(today: date, seed: int = 42) -> Database:
     for card in db.cards:
         for m in months:
             due = clamp_day(m.year, m.month, card.due_day)
-            if due > today or m == months[0]:
+            if due > today:
                 continue
             period = month_key(due)
             # statement window: (previous closing, this closing]; closing before due
@@ -231,9 +231,9 @@ def build_demo(today: date, seed: int = 42) -> Database:
     for t in tx:
         if t.kind == "transfer" and t.to_account_id == savings.id:
             t.goal_id = db.goals[0].id
-    budget_defs = [("Alimentação", 1_900_00), ("Transporte", 650_00), ("Lazer", 500_00),
-                   ("Compras", 600_00), ("Saúde", 900_00), ("Contas", 520_00),
-                   ("Assinaturas", 260_00), ("Moradia", 3_400_00), ("Pet", 220_00)]
+    budget_defs = [("Alimentação", 2_400_00), ("Transporte", 750_00), ("Lazer", 600_00),
+                   ("Compras", 900_00), ("Saúde", 1_000_00), ("Contas", 650_00),
+                   ("Assinaturas", 300_00), ("Moradia", 3_600_00), ("Pet", 250_00)]
     db.budgets = [ent(Budget, category_id=cat[c], amount=a) for c, a in budget_defs]
     rule_defs = [("ifood", "Alimentação"), ("uber", "Transporte"), ("posto", "Transporte"),
                  ("drogasil", "Saúde"), ("netflix", "Assinaturas"), ("amazon", "Compras")]
