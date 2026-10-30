@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from server import errors
 from datetime import date
 
-from server.routers import cards, crud, data, imports, insights, recurrences, transactions
+from server.routers import cards, crud, data, imports, insights, quotes, recurrences, transactions
 from server.services.recurrences import materialize
 from server.storage.json_repo import JsonRepository
 
@@ -48,6 +48,7 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
     app.include_router(insights.router)
     app.include_router(data.router)
     app.include_router(imports.router)
+    app.include_router(quotes.router)
 
     app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
     return app
