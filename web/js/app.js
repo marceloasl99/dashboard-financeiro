@@ -87,7 +87,8 @@ document.addEventListener('keydown', e => {
   applyTheme();
   try {
     await loadReference();
-    document.getElementById('syncState').textContent = 'Conectado';
+    const { api } = await import('./api.js');
+    document.getElementById('syncState').textContent = api.isLocal() ? 'Online (Demo)' : 'Conectado';
   } catch {
     document.getElementById('syncState').textContent = 'Sem conexão';
   }

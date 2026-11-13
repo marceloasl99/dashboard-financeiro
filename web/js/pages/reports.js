@@ -9,7 +9,8 @@ export async function render(view, tools) {
   let year = state.year;
   let catId = expenseCategories()[0]?.id;
   tools.innerHTML = `<select id="rYear" aria-label="Ano" style="width:auto;font-weight:600">${[year - 3, year - 2, year - 1, year, year + 1].map(y => `<option ${y === year ? 'selected' : ''}>${y}</option>`).join('')}</select>
-    <a class="btn" href="/api/export.csv" download>${icon('download', 15)} Exportar CSV</a>`;
+    <button class="btn" id="btnExportCsv" type="button">${icon('download', 15)} Exportar CSV</button>`;
+  tools.querySelector('#btnExportCsv').onclick = () => api.get('/export.csv');
   tools.querySelector('#rYear').onchange = e => { year = +e.target.value; load(); };
   view.innerHTML = `
     <section class="card"><div class="head"><div><h2 id="annualTitle"></h2><p class="sub">Gastos de cada mês, empilhados por categoria. Passe o mouse para ver os valores.</p></div></div>

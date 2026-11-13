@@ -48,16 +48,33 @@ export async function render(view, tools, params) {
     } else if (tab === 'backup') {
       p.innerHTML = `<div class="body" style="display:grid;gap:18px;max-width:640px">
         <div><h2>Exportar</h2><p style="color:var(--ink-2);margin:4px 0 10px">O backup JSON contém tudo (contas, cartões, lançamentos, metas…) e pode ser restaurado aqui. O CSV é só a lista de lançamentos, para abrir em planilha.</p>
-          <div class="inline"><a class="btn primary" href="/api/export.json" download>${icon('download', 15)} Baixar backup completo (JSON)</a><a class="btn" href="/api/export.csv" download>${icon('download', 15)} Lançamentos (CSV)</a></div></div>
-        <div><h2>Restaurar</h2><p style="color:var(--ink-2);margin:4px 0 10px">Substitui <b>todos</b> os dados atuais pelo conteúdo do arquivo. Uma cópia dos dados atuais é guardada em <code>data/backups/</code> antes.</p>
-          <label class="btn danger" style="display:inline-flex">${icon('upload', 15)} Escolher backup JSON…<input type="file" id="restore" accept=".json" style="display:none"></label></div>
-        <div><h2>Backups automáticos</h2><p style="color:var(--ink-2);margin-top:4px">O servidor guarda uma cópia diária em <code>data/backups/</code> e mantém os últimos ${state.settings.backup_keep_days} dias.</p></div></div>`;
+          <div class="inline">
+            <button class="btn primary" id="btnExportJson" type="button">${icon('download', 15)} Baixar backup completo (JSON)</button>
+            <button class="btn" id="btnExportCsv" type="button">${icon('download', 15)} Lançamentos (CSV)</button>
+          </div>
+        </div>
+        <div><h2>Restaurar</h2><p style="color:var(--ink-2);margin:4px 0 10px">Substitui <b>todos</b> os dados atuais pelo conteúdo do arquivo.</p>
+          <div class="inline">
+            <label class="btn danger" style="display:inline-flex">${icon('upload', 15)} Escolher backup JSON…<input type="file" id="restore" accept=".json" style="display:none"></label>
+            <button class="btn ghost danger" id="btnResetDemo" type="button">${icon('refresh', 15)} Restaurar dados de demonstração</button>
+          </div>
+        </div>
+        <div><h2>Armazenamento</h2><p style="color:var(--ink-2);margin-top:4px">No GitHub Pages, seus dados e alterações ficam salvos localmente e com total privacidade no seu navegador (localStorage). Use o botão de backup JSON acima para salvar ou transferir entre dispositivos.</p></div></div>`;
+      p.querySelector('#btnExportJson').onclick = () => api.get('/export.json');
+      p.querySelector('#btnExportCsv').onclick = () => api.get('/export.csv');
+      p.querySelector('#btnResetDemo').onclick = async () => {
+        if (!(await confirmDialog('Restaurar os dados de demonstração iniciais? Suas alterações locais serão substituídas.', { title: 'Restaurar demo', ok: 'Restaurar', danger: true }))) return;
+        api.resetDemo();
+        toast('Dados de demonstração restaurados', 'success');
+        await loadReference();
+        location.hash = '#/overview';
+      };
       p.querySelector('#restore').onchange = async e => {
         const f = e.target.files[0]; if (!f) return;
         if (!(await confirmDialog(`Substituir todos os dados pelo arquivo “${esc(f.name)}”?`, { title: 'Restaurar backup', ok: 'Substituir tudo', danger: true }))) return;
-        const fd = new FormData(); fd.append('file', f);
-        const r = await api.upload('/import/backup', fd);
-        toast(`Restaurado: ${r.transactions} lançamentos`, 'success');
+        const text = await f.text();
+        const r = await api.post('/import/backup', { data: text });
+        toast(`Restaurado: ${r.transactions || 'com sucesso'}`, 'success');
         await loadReference(); location.hash = '#/overview';
       };
     } else if (tab === 'prefs') {
