@@ -9,11 +9,11 @@ import { categoryById, emit, sourceName, state } from '../state.js';
 
 export async function render(view, tools, params) {
   tools.appendChild(periodPicker());
-  const filters = { q: '', category_id: params.category_id || '', account_id: params.account_id || '', card_id: params.card_id || '', kind: '', status: params.status || '', all: !!(params.status) };
+  const filters = { q: params.q || '', category_id: params.category_id || '', account_id: params.account_id || '', card_id: params.card_id || '', kind: '', status: params.status || '', all: !!(params.status || params.q) };
   view.innerHTML = `
     <section class="card">
       <div class="filters">
-        <input class="search" id="f-q" placeholder="Buscar descrição ou tag" aria-label="Buscar">
+        <input class="search" id="f-q" placeholder="Buscar descrição ou tag" aria-label="Buscar" value="${esc(filters.q)}">
         <select id="f-cat" aria-label="Categoria"><option value="">Todas as categorias</option>${state.categories.map(c => `<option value="${c.id}" ${c.id === filters.category_id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
         <select id="f-src" aria-label="Conta ou cartão"><option value="">Contas e cartões</option>
           ${state.accounts.map(a => `<option value="acc:${a.id}" ${a.id === filters.account_id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}

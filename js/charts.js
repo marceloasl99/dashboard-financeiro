@@ -11,13 +11,13 @@ const DARK_MAP = {
   '#8a9a4a': '#a9bb66', '#898781': '#a8a69f', '#1c5cab': '#5598e7', '#184f95': '#6da7ec',
   '#256abf': '#86b6ef', '#3987e5': '#9ec5f4', '#6da7ec': '#b7d3f6',
 };
-export const isDark = () => document.documentElement.dataset.theme === 'dark';
+export const isDark = () => (document.documentElement.dataset.theme || 'light') !== 'light';
 export const seriesColor = hex => (isDark() ? DARK_MAP[hex?.toLowerCase()] || hex : hex);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
 export function theme() {
   return { ink: css('--ink-2'), muted: css('--ink-3'), grid: css('--grid'), surface: css('--surface'),
-           pos: css('--pos'), neg: css('--neg'), brand: isDark() ? '#5fa3c4' : css('--brand') };
+           pos: css('--pos'), neg: css('--neg'), warn: css('--warn'), accent: css('--accent'), brand: isDark() ? css('--accent') : css('--brand') };
 }
 
 export function destroy(id) { registry.get(id)?.destroy(); registry.delete(id); }

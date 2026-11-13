@@ -1,4 +1,4 @@
-# Finance OS v3 — Controle Financeiro Pessoal
+# Finance OS v4 — Controle Financeiro Pessoal
 
 Controle financeiro completo para uso pessoal, sem planilha: contas, cartões de crédito com fatura e parcelas, recorrências, orçamento, metas, investimentos, simulador de independência financeira (FIRE), projeção de caixa, score de saúde financeira e importação de extratos.
 
@@ -12,6 +12,33 @@ Funciona tanto **100% no navegador via GitHub Pages (offline/local)** quanto em 
 
 ![Visão geral](docs/screenshots/overview.png)
 
+## Novidades da v4
+
+| | |
+|---|---|
+| **Assinaturas e contas fixas** | Detecta sozinho, no seu histórico, tudo que cobra todo mês (Netflix, aluguel, plano de saúde, luz…). Mostra custo mensal e anual, quanto da renda está comprometido, próxima cobrança e **reajustes de preço**. Dá para ignorar itens. |
+| **Insights de gastos** | Mapa de calor com 12 meses de gastos dia a dia, dias sem gastar, dia da semana mais caro e **categorias fora do normal** (comparando com o que você costuma gastar até o mesmo dia do mês). |
+| **Lançamento rápido** | No <kbd>Ctrl</kbd>+<kbd>K</kbd>, digite `mercado 54,90 ontem` ou `+ freela 1.200`: valor, data e tipo são entendidos e a categoria é sugerida pelo seu histórico. |
+| **Quanto posso gastar por dia** | A visão geral mostra o valor diário livre até o fim do mês (já descontando contas previstas) e um marcador de ritmo na barra do mês. |
+| **Navegação nova** | Menu lateral agrupado (Dia a dia, Análise, Planejamento, Sistema), aba **Mais** no celular com todas as telas, atalhos <kbd>G</kbd> + letra e lista de atalhos com <kbd>?</kbd>. |
+| **Design** | Nova tipografia (Instrument Sans com números condensados), cor de destaque própria em cada tema, gráficos corretos em todos os temas escuros e score de saúde em anel. |
+| **Correções** | Relatório "evolução de uma categoria" quebrava no modo GitHub Pages; gráficos usavam cores claras nos temas OLED, Nord, Esmeralda e Crepúsculo. |
+
+<p>
+  <img src="docs/screenshots/subscriptions.png" width="49%" alt="Assinaturas e contas fixas">
+  <img src="docs/screenshots/insights.png" width="49%" alt="Insights de gastos">
+</p>
+<p>
+  <img src="docs/screenshots/quick-add.png" width="49%" alt="Lançamento rápido pelo Ctrl+K">
+  <img src="docs/screenshots/overview-dark.png" width="49%" alt="Tema Meia-noite">
+</p>
+<p>
+  <img src="docs/screenshots/mobile-overview.png" width="24%" alt="Celular: visão geral">
+  <img src="docs/screenshots/mobile-more.png" width="24%" alt="Celular: menu Mais">
+  <img src="docs/screenshots/mobile-subscriptions.png" width="24%" alt="Celular: assinaturas">
+  <img src="docs/screenshots/mobile-modal.png" width="24%" alt="Celular: novo lançamento">
+</p>
+
 > **Modo Standalone / GitHub Pages:** Seus dados e lançamentos são salvos com total privacidade no armazenamento local do seu navegador (`localStorage`). Você pode exportar e restaurar backups completos em JSON e CSV a qualquer momento em *Configurações › Backup*.
 
 ---
@@ -20,11 +47,13 @@ Funciona tanto **100% no navegador via GitHub Pages (offline/local)** quanto em 
 
 | Tela | O que você vê |
 |---|---|
-| **Visão geral** | Quanto sobrou no mês, **Score de Saúde Financeira (0-100)**, gastos por categoria, fluxo dos 12 meses, saldo das contas, faturas em aberto e alertas inteligentes (orçamento estourado, fatura vencendo, saldo projetado negativo, previstos a confirmar). |
+| **Visão geral** | Quanto sobrou no mês, quanto dá para gastar por dia até o fim do mês, **Score de Saúde Financeira (0-100)**, gastos por categoria, fluxo dos 12 meses, saldo das contas, faturas em aberto e alertas inteligentes (orçamento estourado, fatura vencendo, saldo projetado negativo, previstos a confirmar). |
 | **Lançamentos** | Extrato com agrupamento por dia, busca por texto, filtro de período customizado (**De / Até**), conta/cartão, categoria e tipo. Clique edita; previstos podem ser confirmados com um toque. |
 | **Cartões** | Fatura atual de cada cartão, limite usado, histórico de faturas, detalhe com compras e botão **Pagar fatura** (cria a transferência da conta). Parcelas aparecem nas faturas certas (3/12…). |
 | **Calendário e projeção** | Vencimentos, fechamentos, recorrências e metas no mês, mais o saldo projetado dos próximos 90 dias, com aviso do primeiro dia com saldo negativo. |
 | **Independência FIRE** | **Simulador de Liberdade Financeira:** calcula seu "Número Mágico" com base na Regra dos 4%, projeta o patrimônio com juros compostos + aportes e estima a idade e o ano da sua independência financeira. |
+| **Assinaturas** | Cobranças recorrentes detectadas automaticamente, custo anual, parte da renda comprometida e reajustes. |
+| **Insights** | Mapa de calor diário, ritmo da semana, categorias fora do normal e maiores compras do mês. |
 | **Orçamento** | Limite × realizado por categoria no mês (com ajuste só para um mês) e acumulado do ano. |
 | **Relatórios** | Ano empilhado por categoria, comparativo entre anos, evolução de uma categoria em 24 meses e exportação em CSV. |
 | **Investimentos** | Patrimônio, alocação por classe, aportes × valor, vencimentos e liquidez, posições (FGTS incluído). Cotações opcionais (brapi/CoinGecko). |
@@ -51,8 +80,10 @@ O Finance OS conta com 6 paletas profissionais selecionáveis em *Configuraçõe
 
 ## ⌨️ Atalhos de Teclado & Produtividade
 
-- <kbd>Ctrl</kbd> + <kbd>K</kbd> (ou <kbd>Cmd</kbd> + <kbd>K</kbd>): **Command Palette & Busca Global** — navegue para qualquer tela, busque contas, cartões e atalhos rápidos.
+- <kbd>Ctrl</kbd> + <kbd>K</kbd> (ou <kbd>Cmd</kbd> + <kbd>K</kbd>): **Busca global e lançamento rápido** — navegue para qualquer tela ou digite algo como `uber 23,50 ontem` para lançar.
 - <kbd>N</kbd>: **Novo Lançamento** rápido em qualquer tela.
+- <kbd>T</kbd>: próximo tema. <kbd>[</kbd> / <kbd>]</kbd>: mês anterior / próximo.
+- <kbd>G</kbd> + letra: ir para uma tela (<kbd>G</kbd> <kbd>V</kbd> visão geral, <kbd>G</kbd> <kbd>L</kbd> lançamentos, <kbd>G</kbd> <kbd>S</kbd> assinaturas, <kbd>G</kbd> <kbd>I</kbd> insights…). <kbd>?</kbd> mostra todos.
 - <kbd>P</kbd>: **Modo Privacidade** — desfoque instantâneo de saldos e valores para uso em público ou compartilhamento de tela *(passe o mouse sobre qualquer valor para espiar)*.
 - **Duplo clique no resumo do mês (ruler):** Abre o formulário de lançamento.
 
@@ -123,6 +154,8 @@ O script cria o usuário `finance`, instala em `/opt/finance-os`, cria o `venv`,
 │   ├── js/
 │   │   ├── app.js          # Roteamento hash, temas e atalhos globais
 │   │   ├── local_backend.js# Engine de cálculos offline compatível com o backend
+│   │   ├── analytics.js    # Assinaturas, insights e lançamento rápido (funções puras)
+│   │   ├── tests/          # Testes: node --test web/js/tests/
 │   │   ├── components/     # Modais, ícones, toasts e command palette
 │   │   └── pages/          # Visão geral, extrato, cartões, FIRE, metas, etc.
 │   └── vendor/             # Chart.js bundle

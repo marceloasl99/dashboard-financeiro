@@ -2,7 +2,9 @@
 import { icon } from './icons.js';
 import { openTransactionModal } from './txModal.js';
 import { state } from '../state.js';
-import { money } from '../format.js';
+import { money, dateBR, esc, todayISO } from '../format.js';
+import { guessCategory, parseQuickEntry } from '../analytics.js';
+import { categoryById } from '../state.js';
 import { api } from '../api.js';
 
 let isOpen = false;
@@ -11,7 +13,8 @@ let rootEl = null;
 const STATIC_ACTIONS = [
   { id: 'act-new-tx', title: 'Novo lançamento', sub: 'Registrar receita, despesa ou transferência', icon: 'plus', badge: 'Atalho: N', run: () => openTransactionModal() },
   { id: 'act-privacy', title: 'Alternar modo privacidade', sub: 'Ocultar / revelar valores na tela', icon: 'eye', badge: 'Privacidade', run: () => window.togglePrivacyMode?.() },
-  { id: 'act-theme', title: 'Próximo tema visual', sub: 'Alternar entre os 6 temas disponíveis', icon: 'sun', badge: 'Aparência', run: () => window.cycleTheme?.() },
+  { id: 'act-theme', title: 'Próximo tema visual', sub: 'Alternar entre os 6 temas disponíveis', icon: 'sun', badge: 'Atalho: T', run: () => window.cycleTheme?.() },
+  { id: 'act-keys', title: 'Atalhos de teclado', sub: 'Ver todos os atalhos, incluindo G + letra para navegar', icon: 'keyboard', badge: 'Atalho: ?', run: () => import('../app.js').then(m => m.openShortcuts()) },
   { id: 'act-export', title: 'Baixar backup completo (JSON)', sub: 'Exportar todos os dados e lançamentos', icon: 'download', badge: 'Dados', run: () => api.get('/export.json') },
 ];
 
@@ -21,6 +24,9 @@ const PAGES = [
   { id: 'cards', title: 'Cartões de crédito', sub: 'Faturas abertas, limites e faturas pagas', icon: 'card' },
   { id: 'calendar', title: 'Calendário e projeção', sub: 'Vencimentos e fluxo de caixa de 90 dias', icon: 'calendar' },
   { id: 'budget', title: 'Orçamento', sub: 'Limites de gastos por categoria', icon: 'target' },
+  { id: 'subscriptions', title: 'Assinaturas e contas fixas', sub: 'Cobranças recorrentes detectadas, custo anual e reajustes', icon: 'repeat' },
+  { id: 'insights', title: 'Insights de gastos', sub: 'Mapa de calor diário, ritmo da semana e gastos fora do normal', icon: 'sparkles' },
+  { id: 'import', title: 'Importar extrato', sub: 'CSV, XLSX, OFX ou PDF do banco', icon: 'upload' },
   { id: 'reports', title: 'Relatórios', sub: 'Evolução de despesas e comparativos anuais', icon: 'chart' },
   { id: 'investments', title: 'Investimentos', sub: 'Patrimônio, classes de ativos e cotações', icon: 'trending' },
   { id: 'goals', title: 'Metas', sub: 'Objetivos financeiros e prazos', icon: 'flag' },
@@ -38,13 +44,13 @@ export function openCommandPalette() {
     <div class="cmd-modal" role="dialog" aria-modal="true" aria-label="Busca e comandos">
       <div class="cmd-input-wrap">
         ${icon('search', 18)}
-        <input type="text" id="cmdInput" placeholder="Buscar telas, contas, ações ou lançamentos..." autocomplete="off">
+        <input type="text" id="cmdInput" placeholder="Buscar telas, contas e ações, ou lançar: “mercado 54,90 ontem”" autocomplete="off">
         <span class="cmd-badge"><kbd>ESC</kbd></span>
       </div>
       <div class="cmd-results" id="cmdResults"></div>
       <div class="cmd-foot">
         <span>Use <kbd>↑</kbd> <kbd>↓</kbd> para navegar e <kbd>ENTER</kbd> para abrir</span>
-        <span>Finance OS v3</span>
+        <span>Digite um valor para lançar</span>
       </div>
     </div>
   `;
@@ -55,6 +61,8 @@ export function openCommandPalette() {
 
   let selectedIndex = 0;
   let currentItems = [];
+  let history = [];
+  api.get('/transactions', { page_size: 1000 }, { silent: true }).then(r => { history = r?.items || []; }).catch(() => {});
 
   function close() {
     if (!isOpen) return;
@@ -66,6 +74,21 @@ export function openCommandPalette() {
   function renderList(query = '') {
     const q = query.trim().toLowerCase();
     const items = [];
+
+    // Quick entry: any text with an amount becomes a ready-to-save transaction.
+    const quick = parseQuickEntry(query, todayISO());
+    if (quick) {
+      const category_id = guessCategory(quick.description, history, quick.kind);
+      const cat = categoryById(category_id);
+      const verb = quick.kind === 'income' ? 'Lançar receita' : 'Lançar gasto';
+      items.push({
+        type: 'quick', quick: true,
+        title: `${verb} de ${money(quick.amount)}${quick.description ? ` em “${esc(quick.description)}”` : ''}`,
+        sub: `${dateBR(quick.date)}${cat ? `, categoria ${esc(cat.name)}` : ''}. Enter abre o formulário preenchido`,
+        icon: 'bolt', badge: 'Lançar',
+        action: () => { close(); openTransactionModal({ defaults: { ...quick, category_id } }); },
+      });
+    }
 
     // Filter pages
     for (const p of PAGES) {
@@ -126,12 +149,12 @@ export function openCommandPalette() {
     if (selectedIndex >= currentItems.length) selectedIndex = 0;
 
     if (currentItems.length === 0) {
-      resultsContainer.innerHTML = `<div style="padding:24px;text-align:center;color:var(--ink-3);font-size:13px">Nenhum resultado encontrado para “${query}”.</div>`;
+      resultsContainer.innerHTML = `<div style="padding:24px;text-align:center;color:var(--ink-3);font-size:13px">Nada encontrado para “${esc(query)}”. Para lançar, inclua um valor, como “${esc(query)} 25,00”.</div>`;
       return;
     }
 
     resultsContainer.innerHTML = currentItems.map((item, idx) => `
-      <div class="cmd-item ${idx === selectedIndex ? 'selected' : ''}" data-idx="${idx}">
+      <div class="cmd-item ${item.quick ? 'quick' : ''} ${idx === selectedIndex ? 'selected' : ''}" data-idx="${idx}">
         <div class="cmd-left">
           ${icon(item.icon, 16)}
           <div>

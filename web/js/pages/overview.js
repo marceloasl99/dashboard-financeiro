@@ -32,17 +32,35 @@ export async function render(view, tools) {
     const scale = Math.max(k.income, k.expense, 1);
     const w = v => (v / scale * 100).toFixed(1) + '%';
     const isCurrent = state.year === +todayISO().slice(0, 4) && state.month === +todayISO().slice(5, 7);
+    // Pace: where spending "should" be today if the month's income were spread evenly.
+    const daysInMonth = new Date(state.year, state.month, 0).getDate();
+    const today = +todayISO().slice(8, 10);
+    const paceAt = isCurrent && k.income > 0 ? k.income * today / daysInMonth : null;
+    const pacePct = paceAt != null ? Math.min(100, paceAt / scale * 100) : null;
+    const paceDiff = paceAt ? Math.round((k.expense / paceAt - 1) * 100) : null;
+    const daysLeft = daysInMonth - today + 1;
+    const free = k.balance - (k.planned_expense || 0);
+    const perDay = Math.floor(free / daysLeft);
     document.getElementById('ruler').innerHTML = `
-      <div><div class="lead">${isCurrent ? 'Até agora em' : 'Resultado de'} ${MONTHS[state.month - 1].toLowerCase()} de ${state.year}, sobrou</div>
-        <div class="big ${k.balance < 0 ? 'neg' : ''}">${money(k.balance)}</div></div>
+      <div><div class="lead">${isCurrent ? 'Até agora em' : 'Resultado de'} ${MONTHS[state.month - 1].toLowerCase()} de ${state.year}, ${k.balance < 0 ? 'faltou' : 'sobrou'}</div>
+        <div class="big money ${k.balance < 0 ? 'neg' : ''}">${money(k.balance)}</div></div>
       <div class="stats">
         <div><div class="k">Entradas</div><div class="v">${money(k.income)}</div><span class="delta ${deltaClass(k.income_change, false)}">${signedPct(k.income_change)}</span></div>
         <div><div class="k">Saídas</div><div class="v">${money(k.expense)}</div><span class="delta ${deltaClass(k.expense_change, true)}">${signedPct(k.expense_change)}</span></div>
         <div><div class="k">Taxa de poupança</div><div class="v">${pct(k.savings_rate)}</div>${k.planned_expense ? `<span class="delta flat">${money(k.planned_expense)} previstos</span>` : ''}</div>
       </div>
-      <div class="track" role="img" aria-label="Entradas ${money(k.income)}, saídas ${money(k.expense)}">
-        <span class="exp" style="width:${w(k.expense)}"></span><span class="left" style="width:${w(left)}"></span></div>
-      <div class="legend"><span><i style="background:var(--neg)"></i>Gastei<b>${money(k.expense)}</b></span><span><i style="background:var(--pos);opacity:.5"></i>Sobrou<b>${money(left)}</b></span>${k.balance < 0 ? `<span><i style="background:var(--neg)"></i>Faltou<b>${money(-k.balance)}</b></span>` : ''}<span style="margin-left:auto">Entradas<b>${money(k.income)}</b></span></div>`;
+      <div class="track-wrap">
+        ${pacePct != null ? `<div class="pace ${pacePct > 70 ? 'flip' : ''}" style="left:${pacePct.toFixed(1)}%" title="Ritmo neutro: gastar a renda do mês por igual até o dia ${today}"><span>Hoje, dia ${today}</span></div>` : ''}
+        <div class="track" role="img" aria-label="Entradas ${money(k.income)}, saídas ${money(k.expense)}">
+          <span class="exp" style="width:${w(k.expense)}"></span><span class="left" style="width:${w(left)}"></span></div>
+      </div>
+      <div class="legend"><span><i style="background:var(--neg)"></i>Gastei<b class="money">${money(k.expense)}</b></span><span><i style="background:var(--pos);opacity:.5"></i>Sobrou<b class="money">${money(left)}</b></span>${k.balance < 0 ? `<span><i style="background:var(--neg)"></i>Faltou<b class="money">${money(-k.balance)}</b></span>` : ''}<span style="margin-left:auto">Entradas<b class="money">${money(k.income)}</b></span></div>
+      ${isCurrent ? `<div class="safe ${perDay < 0 ? 'neg' : ''}">
+        ${perDay >= 0
+          ? `<span>Dá para gastar</span><b class="money">${money(perDay)} por dia</b><span>até o fim do mês (${daysLeft} dia${daysLeft > 1 ? 's' : ''}), já descontando ${money(k.planned_expense || 0)} em contas previstas.</span>`
+          : `<span>As contas previstas passam o que sobrou em</span><b class="money">${money(-free)}</b><span>Segure gastos ou adie algo para fechar o mês no azul.</span>`}
+        ${paceDiff != null && k.expense > 0 ? `<span style="margin-left:auto" class="delta ${paceDiff > 5 ? 'bad' : paceDiff < -5 ? 'good' : 'flat'}">${paceDiff > 0 ? `${paceDiff}% acima do ritmo` : paceDiff < 0 ? `${-paceDiff}% abaixo do ritmo` : 'no ritmo'}</span>` : ''}
+      </div>` : ''}`;
 
     // health score
     renderHealthScore(d);
@@ -132,21 +150,17 @@ function renderHealthScore(d) {
   if (!hasNegativeForecast) score += 15;
 
   let level = 'bad';
-  let title = 'Saúde Financeira Crítica';
-  let desc = 'Atenção aos gastos excessivos e faturas para evitar endividamento.';
-
+  let title = 'Saúde financeira crítica';
+  let desc = 'Gastos acima da renda ou faturas atrasadas. Comece pelos alertas ao lado e pelo orçamento.';
   if (score >= 85) {
-    level = 'great';
-    title = 'Saúde Financeira Excelente 🛡️';
-    desc = 'Parabéns! Sua taxa de poupança está alta, contas em dia e orçamentos rigorosamente sob controle.';
+    level = 'great'; title = 'Saúde financeira excelente';
+    desc = 'Poupança alta, faturas em dia e orçamentos sob controle. Continue assim.';
   } else if (score >= 70) {
-    level = 'good';
-    title = 'Saúde Financeira Boa ✨';
-    desc = 'Você está no caminho certo. Mantenha os aportes e monitore os orçamentos para atingir o topo.';
+    level = 'good'; title = 'Saúde financeira boa';
+    desc = 'No caminho certo. Os itens em amarelo abaixo são o que falta para chegar ao topo.';
   } else if (score >= 50) {
-    level = 'warn';
-    title = 'Atenção com as Finanças ⚠️';
-    desc = 'Seu caixa está positivo, mas alguns orçamentos ou faturas exigem cautela este mês.';
+    level = 'warn'; title = 'Pede atenção';
+    desc = 'O caixa está positivo, mas alguns orçamentos ou faturas exigem cuidado este mês.';
   }
 
   const section = document.getElementById('healthScoreSection');
@@ -154,12 +168,12 @@ function renderHealthScore(d) {
 
   section.innerHTML = `
     <div class="health-score-card">
-      <div class="health-gauge ${level}">${score}</div>
+      <div class="health-ring ${level}" style="--v:${score}" role="img" aria-label="Pontuação ${score} de 100"><b>${score}</b></div>
       <div class="health-details">
         <h3>${title}</h3>
         <p>${desc}</p>
         <div class="health-chips">
-          <span class="health-chip ${sr >= 15 ? 'ok' : 'alert'}">${icon(sr >= 15 ? 'check' : 'alert', 13)} Poupança: ${sr}%</span>
+          <span class="health-chip ${sr >= 15 ? 'ok' : 'alert'}">${icon(sr >= 15 ? 'check' : 'alert', 13)} Poupança: ${pct(sr)}</span>
           <span class="health-chip ${budgetAlerts.length === 0 ? 'ok' : 'alert'}">${icon(budgetAlerts.length === 0 ? 'check' : 'alert', 13)} Orçamento: ${budgetAlerts.length === 0 ? 'Sob controle' : `${budgetAlerts.length} estourado(s)`}</span>
           <span class="health-chip ${overdueStatements.length === 0 ? 'ok' : 'alert'}">${icon(overdueStatements.length === 0 ? 'check' : 'alert', 13)} Faturas: ${overdueStatements.length === 0 ? 'Em dia' : 'Vencida'}</span>
           <span class="health-chip ${!hasNegativeForecast ? 'ok' : 'alert'}">${icon(!hasNegativeForecast ? 'check' : 'alert', 13)} Projeção 90d: ${!hasNegativeForecast ? 'Positiva' : 'Alerta de saldo'}</span>

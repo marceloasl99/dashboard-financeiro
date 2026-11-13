@@ -748,7 +748,7 @@ export class LocalBackend {
 
     // GET collections
     if (method === 'GET') {
-      if (pathname === '/health') return { status: 'ok', version: '3.0.0-github-pages', mode: 'offline' };
+      if (pathname === '/health') return { status: 'ok', version: '4.0.0-github-pages', mode: 'offline' };
       if (pathname === '/accounts') return this.db.accounts || [];
       if (pathname === '/cards') return this.db.cards || [];
       if (pathname === '/categories') return this.db.categories || [];
@@ -787,6 +787,9 @@ export class LocalBackend {
         const y2 = parseInt(q.y2, 10);
         return this.buildCompareReport(y1, y2);
       }
+
+      const catHistMatch = pathname.match(/^\/reports\/category\/([^/]+)$/);
+      if (catHistMatch) return this.buildCategoryHistory(catHistMatch[1], parseInt(q.months, 10) || 24);
 
       if (pathname === '/reports/category-history') {
         const catId = q.category_id;
