@@ -748,7 +748,7 @@ export class LocalBackend {
 
     // GET collections
     if (method === 'GET') {
-      if (pathname === '/health') return { status: 'ok', version: '2.0.0-github-pages', mode: 'offline' };
+      if (pathname === '/health') return { status: 'ok', version: '3.0.0-github-pages', mode: 'offline' };
       if (pathname === '/accounts') return this.db.accounts || [];
       if (pathname === '/cards') return this.db.cards || [];
       if (pathname === '/categories') return this.db.categories || [];

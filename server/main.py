@@ -11,7 +11,7 @@ from server.routers import cards, crud, data, imports, insights, quotes, recurre
 from server.services.recurrences import materialize
 from server.storage.json_repo import JsonRepository
 
-VERSION = "2.0.0-beta"
+VERSION = "3.0.0"
 ROOT = Path(__file__).resolve().parent.parent
 WEB_DIR = ROOT / "web"
 

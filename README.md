@@ -1,4 +1,4 @@
-# Finance OS v2 — Controle Financeiro Pessoal
+# Finance OS v3 — Controle Financeiro Pessoal
 
 Controle financeiro completo para uso pessoal, sem planilha: contas, cartões de crédito com fatura e parcelas, recorrências, orçamento, metas, investimentos, simulador de independência financeira (FIRE), projeção de caixa, score de saúde financeira e importação de extratos.
 
@@ -31,6 +31,8 @@ Funciona tanto **100% no navegador via GitHub Pages (offline/local)** quanto em 
 | **Metas** | Progresso pelos lançamentos vinculados, prazo e quanto falta poupar por mês. |
 | **Importar extrato** | Arraste CSV, XLSX, OFX ou PDF do banco ou do cartão. Pré-visualização com categoria sugerida (regras + histórico) e duplicados detectados. |
 | **Configurações** | Gerenciamento de contas, cartões, categorias, regras de categorização, recorrências, backup/restauração, seleção visual de temas e cotações. |
+
+![Simulador de Independência Financeira](docs/screenshots/fire.png)
 
 ---
 

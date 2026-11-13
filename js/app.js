@@ -122,7 +122,7 @@ async function render(force = false) {
   const params = Object.fromEntries(new URLSearchParams(qs || ''));
   renderNav();
   document.getElementById('pageTitle').textContent = route.title;
-  document.title = `${route.title} · Finance OS`;
+  document.title = `${route.title} · Finance OS v3`;
   if (!force && currentId === route.id && current?.update) { current.update(params); return; }
   current?.destroy?.();
   destroyAll();

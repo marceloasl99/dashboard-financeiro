@@ -44,7 +44,7 @@ export function openCommandPalette() {
       <div class="cmd-results" id="cmdResults"></div>
       <div class="cmd-foot">
         <span>Use <kbd>↑</kbd> <kbd>↓</kbd> para navegar e <kbd>ENTER</kbd> para abrir</span>
-        <span>Finance OS v2</span>
+        <span>Finance OS v3</span>
       </div>
     </div>
   `;
