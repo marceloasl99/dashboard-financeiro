@@ -79,16 +79,76 @@ export async function render(view, tools, params) {
       };
     } else if (tab === 'prefs') {
       const s = state.settings;
-      p.innerHTML = `<div class="body" style="display:grid;gap:16px;max-width:560px">
-        ${field('s-theme', 'Tema', `<select id="s-theme"><option value="auto" ${s.theme === 'auto' ? 'selected' : ''}>Automático (segue o sistema)</option><option value="light" ${s.theme === 'light' ? 'selected' : ''}>Claro</option><option value="dark" ${s.theme === 'dark' ? 'selected' : ''}>Escuro</option></select>`)}
-        <label class="check"><input type="checkbox" id="s-quotes" ${s.quotes_enabled ? 'checked' : ''}> Permitir atualizar cotações pela internet (brapi.dev para B3, CoinGecko para cripto)</label>
-        ${field('s-key', 'Token do brapi.dev (opcional)', `<input id="s-key" value="${esc(s.quotes_api_key || '')}" placeholder="sem token o limite gratuito é baixo">`, 'Cotações são aproximadas e podem ter atraso. O app nunca envia seus dados; só consulta preços.')}
-        ${field('s-keep', 'Dias de backup automático a manter', `<input id="s-keep" type="number" min="1" max="365" value="${s.backup_keep_days}">`)}
+      const THEMES_CONFIG = [
+        { id: 'light', name: 'Clássico Claro', bg: '#F4F2EE', card: '#FFFFFF', brand: '#1B3A4B', acc: '#1F7A5E' },
+        { id: 'dark', name: 'Meia-noite', bg: '#141B20', card: '#1C252C', brand: '#2A78D6', acc: '#5CC29A' },
+        { id: 'oled', name: 'OLED Puro', bg: '#000000', card: '#0C1014', brand: '#58A6FF', acc: '#3FB950' },
+        { id: 'nord', name: 'Nord Ártico', bg: '#242933', card: '#2E3440', brand: '#88C0D0', acc: '#A3BE8C' },
+        { id: 'emerald', name: 'Esmeralda', bg: '#091712', card: '#10261E', brand: '#4ECCA3', acc: '#52B788' },
+        { id: 'sunset', name: 'Crepúsculo', bg: '#1A1412', card: '#241D19', brand: '#E28743', acc: '#D4A373' },
+      ];
+      let selectedTheme = s.theme || 'auto';
+
+      p.innerHTML = `<div class="body" style="display:grid;gap:20px;max-width:680px">
+        <div>
+          <h2>Tema visual da interface</h2>
+          <p style="color:var(--ink-2);margin:4px 0 12px;font-size:13px">Selecione uma das 6 paletas profissionais desenhadas para conforto visual diurno e noturno:</p>
+          <div class="theme-grid" id="themeGrid">
+            ${THEMES_CONFIG.map(t => `
+              <div class="theme-card ${selectedTheme === t.id ? 'active' : ''}" data-theme-id="${t.id}">
+                <div class="theme-preview">
+                  <span style="background:${t.bg}"></span>
+                  <span style="background:${t.card}"></span>
+                  <span style="background:${t.brand}"></span>
+                  <span style="background:${t.acc}"></span>
+                </div>
+                <span class="t-name">${t.name}</span>
+              </div>
+            `).join('')}
+          </div>
+          <div style="margin-top:10px">
+            <label class="check"><input type="checkbox" id="themeAuto" ${selectedTheme === 'auto' ? 'checked' : ''}> Seguir preferência do sistema operacional (automático)</label>
+          </div>
+        </div>
+
+        <div>
+          <h2>Cotações e Dados</h2>
+          <label class="check" style="margin-top:8px"><input type="checkbox" id="s-quotes" ${s.quotes_enabled ? 'checked' : ''}> Permitir atualizar cotações pela internet (brapi.dev para B3, CoinGecko para cripto)</label>
+          <div style="margin-top:10px">${field('s-key', 'Token do brapi.dev (opcional)', `<input id="s-key" value="${esc(s.quotes_api_key || '')}" placeholder="sem token o limite gratuito é baixo">`, 'Cotações são aproximadas e podem ter atraso. O app nunca envia seus dados; só consulta preços.')}</div>
+          <div style="margin-top:10px">${field('s-keep', 'Dias de backup automático a manter', `<input id="s-keep" type="number" min="1" max="365" value="${s.backup_keep_days || 30}">`)}</div>
+        </div>
+
         <div><button class="btn primary" id="s-save" type="button">Salvar preferências</button></div>
-        <p style="font-size:12px;color:var(--ink-3)">Atalho: tecle <kbd>n</kbd> em qualquer tela para lançar.</p></div>`;
+        <p style="font-size:12px;color:var(--ink-3)">Atalhos rápidos: <kbd>n</kbd> para novo lançamento · <kbd>Ctrl+K</kbd> para busca global · <kbd>p</kbd> para alternar modo privacidade.</p>
+      </div>`;
+
+      p.querySelectorAll('.theme-card').forEach(card => {
+        card.onclick = () => {
+          selectedTheme = card.dataset.themeId;
+          p.querySelector('#themeAuto').checked = false;
+          p.querySelectorAll('.theme-card').forEach(c => c.classList.toggle('active', c === card));
+          document.documentElement.dataset.theme = selectedTheme;
+        };
+      });
+
+      p.querySelector('#themeAuto').onchange = e => {
+        if (e.target.checked) {
+          selectedTheme = 'auto';
+          p.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+          const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        }
+      };
+
       p.querySelector('#s-save').onclick = async () => {
-        await api.put('/settings', { theme: p.querySelector('#s-theme').value, quotes_enabled: p.querySelector('#s-quotes').checked, quotes_api_key: p.querySelector('#s-key').value.trim(), backup_keep_days: +p.querySelector('#s-keep').value || 30 });
-        toast('Preferências salvas', 'success'); await loadReference();
+        await api.put('/settings', {
+          theme: selectedTheme,
+          quotes_enabled: p.querySelector('#s-quotes').checked,
+          quotes_api_key: p.querySelector('#s-key').value.trim(),
+          backup_keep_days: +p.querySelector('#s-keep').value || 30,
+        });
+        toast('Preferências salvas com sucesso', 'success');
+        await loadReference();
       };
     }
   }

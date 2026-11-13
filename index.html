@@ -30,7 +30,18 @@
 <main id="main" class="main" tabindex="-1">
   <header class="topbar">
     <h1 id="pageTitle">Visão geral</h1>
-    <div id="pageTools" class="page-tools"></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div id="pageTools" class="page-tools"></div>
+      <div class="inline" style="border-left:1px solid var(--line);padding-left:8px;margin-left:4px">
+        <button id="searchBtn" class="btn small" type="button" aria-label="Busca rápida (Ctrl+K)" title="Busca rápida (Ctrl+K)">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <span class="hide-sm" style="font-size:12px;color:var(--ink-2)">Buscar <kbd style="font-size:10px;background:var(--surface-2);border:1px solid var(--line);padding:1px 4px;border-radius:4px">Ctrl+K</kbd></span>
+        </button>
+        <button id="privacyBtn" class="btn small icon" type="button" aria-label="Modo Privacidade" title="Modo Privacidade (ocultar valores)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
   </header>
   <div id="view" class="view"></div>
 </main>

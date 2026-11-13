@@ -11,6 +11,7 @@ export async function render(view, tools) {
   tools.appendChild(periodPicker());
   view.innerHTML = `
     <section class="card ruler" id="ruler" aria-label="Resumo do mês"></section>
+    <section id="healthScoreSection" style="margin:4px 0"></section>
     <div class="grid-2">
       <section class="card"><div class="head"><div><h2>Para onde foi o dinheiro</h2><p class="sub" id="catSub"></p></div></div>
         <div class="body"><div class="chart" style="height:250px"><canvas id="catChart"></canvas></div><div id="catList" class="list" style="margin-top:8px"></div></div></section>
@@ -42,6 +43,9 @@ export async function render(view, tools) {
       <div class="track" role="img" aria-label="Entradas ${money(k.income)}, saídas ${money(k.expense)}">
         <span class="exp" style="width:${w(k.expense)}"></span><span class="left" style="width:${w(left)}"></span></div>
       <div class="legend"><span><i style="background:var(--neg)"></i>Gastei<b>${money(k.expense)}</b></span><span><i style="background:var(--pos);opacity:.5"></i>Sobrou<b>${money(left)}</b></span>${k.balance < 0 ? `<span><i style="background:var(--neg)"></i>Faltou<b>${money(-k.balance)}</b></span>` : ''}<span style="margin-left:auto">Entradas<b>${money(k.income)}</b></span></div>`;
+
+    // health score
+    renderHealthScore(d);
 
     // categories
     const items = d.by_category.map(x => ({ ...x, cat: categoryById(x.category_id) })).map(x => ({ label: x.cat?.name || 'Sem categoria', value: x.amount, color: x.cat?.color || '#898781', id: x.category_id }));
@@ -101,4 +105,66 @@ function deltaClass(v, invert) {
   if (v == null || v === 0) return 'flat';
   const good = invert ? v < 0 : v > 0;
   return good ? 'good' : 'bad';
+}
+
+function renderHealthScore(d) {
+  const k = d.kpis;
+  let score = 0;
+
+  // 1. Savings rate (max 40)
+  const sr = k.savings_rate || 0;
+  if (sr >= 25) score += 40;
+  else if (sr >= 15) score += 30;
+  else if (sr >= 5) score += 20;
+  else if (sr > 0) score += 10;
+
+  // 2. Budget adherence (max 25)
+  const budgetAlerts = (d.alerts || []).filter(a => a.type === 'budget');
+  if (budgetAlerts.length === 0) score += 25;
+  else if (budgetAlerts.length === 1) score += 12;
+
+  // 3. Statements status (max 20)
+  const overdueStatements = (d.alerts || []).filter(a => a.type === 'statement_overdue');
+  if (overdueStatements.length === 0) score += 20;
+
+  // 4. Cashflow projection (max 15)
+  const hasNegativeForecast = !!d.forecast?.first_negative_date;
+  if (!hasNegativeForecast) score += 15;
+
+  let level = 'bad';
+  let title = 'Saúde Financeira Crítica';
+  let desc = 'Atenção aos gastos excessivos e faturas para evitar endividamento.';
+
+  if (score >= 85) {
+    level = 'great';
+    title = 'Saúde Financeira Excelente 🛡️';
+    desc = 'Parabéns! Sua taxa de poupança está alta, contas em dia e orçamentos rigorosamente sob controle.';
+  } else if (score >= 70) {
+    level = 'good';
+    title = 'Saúde Financeira Boa ✨';
+    desc = 'Você está no caminho certo. Mantenha os aportes e monitore os orçamentos para atingir o topo.';
+  } else if (score >= 50) {
+    level = 'warn';
+    title = 'Atenção com as Finanças ⚠️';
+    desc = 'Seu caixa está positivo, mas alguns orçamentos ou faturas exigem cautela este mês.';
+  }
+
+  const section = document.getElementById('healthScoreSection');
+  if (!section) return;
+
+  section.innerHTML = `
+    <div class="health-score-card">
+      <div class="health-gauge ${level}">${score}</div>
+      <div class="health-details">
+        <h3>${title}</h3>
+        <p>${desc}</p>
+        <div class="health-chips">
+          <span class="health-chip ${sr >= 15 ? 'ok' : 'alert'}">${icon(sr >= 15 ? 'check' : 'alert', 13)} Poupança: ${sr}%</span>
+          <span class="health-chip ${budgetAlerts.length === 0 ? 'ok' : 'alert'}">${icon(budgetAlerts.length === 0 ? 'check' : 'alert', 13)} Orçamento: ${budgetAlerts.length === 0 ? 'Sob controle' : `${budgetAlerts.length} estourado(s)`}</span>
+          <span class="health-chip ${overdueStatements.length === 0 ? 'ok' : 'alert'}">${icon(overdueStatements.length === 0 ? 'check' : 'alert', 13)} Faturas: ${overdueStatements.length === 0 ? 'Em dia' : 'Vencida'}</span>
+          <span class="health-chip ${!hasNegativeForecast ? 'ok' : 'alert'}">${icon(!hasNegativeForecast ? 'check' : 'alert', 13)} Projeção 90d: ${!hasNegativeForecast ? 'Positiva' : 'Alerta de saldo'}</span>
+        </div>
+      </div>
+    </div>
+  `;
 }

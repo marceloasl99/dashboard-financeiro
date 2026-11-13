@@ -1,6 +1,7 @@
-// App shell: hash routing, navigation, theme, global "new transaction" button.
+// App shell: hash routing, navigation, theme suite, privacy mode, command palette.
 import { icon } from './components/icons.js';
 import { openTransactionModal } from './components/txModal.js';
+import { openCommandPalette } from './components/commandPalette.js';
 import { destroyAll } from './charts.js';
 import { loadReference, restorePeriod, state, subscribe } from './state.js';
 
@@ -13,22 +14,98 @@ const ROUTES = [
   { id: 'reports', title: 'Relatórios', icon: 'chart' },
   { id: 'investments', title: 'Investimentos', icon: 'trending' },
   { id: 'goals', title: 'Metas', icon: 'flag' },
+  { id: 'fire', title: 'Independência FIRE', icon: 'fire' },
   { id: 'import', title: 'Importar extrato', icon: 'upload' },
   { id: 'settings', title: 'Configurações', icon: 'settings', tab: true },
 ];
 
+export const THEMES = ['light', 'dark', 'oled', 'nord', 'emerald', 'sunset'];
+export const THEME_LABELS = {
+  light: 'Clássico',
+  dark: 'Meia-noite',
+  oled: 'OLED Puro',
+  nord: 'Nord Ártico',
+  emerald: 'Esmeralda',
+  sunset: 'Crepúsculo',
+};
+
+const THEME_COLORS = {
+  light: '#1B3A4B',
+  dark: '#141B20',
+  oled: '#000000',
+  nord: '#242933',
+  emerald: '#091712',
+  sunset: '#1A1412',
+};
+
 let current = null;
 let currentId = null;
 
-function applyTheme() {
-  const pref = state.settings?.theme || 'auto';
-  const dark = pref === 'dark' || (pref === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
-  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-  document.querySelector('meta[name=theme-color]').content = dark ? '#141B20' : '#1B3A4B';
-  const t = document.getElementById('themeToggle');
-  if (t) t.innerHTML = `${icon(dark ? 'sun' : 'moon', 15)} ${dark ? 'Claro' : 'Escuro'}`;
+// Privacy mode toggle
+export function togglePrivacyMode() {
+  if (typeof document === 'undefined') return;
+  const isPrivate = document.body.classList.toggle('privacy-mode');
+  try { localStorage.setItem('finance.privacy', isPrivate ? '1' : '0'); } catch {}
+  updatePrivacyIcon();
 }
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { applyTheme(); render(true); });
+if (typeof window !== 'undefined') window.togglePrivacyMode = togglePrivacyMode;
+
+function updatePrivacyIcon() {
+  if (typeof document === 'undefined') return;
+  const isPrivate = document.body.classList.contains('privacy-mode');
+  const btn = document.getElementById('privacyBtn');
+  if (btn) {
+    btn.innerHTML = icon(isPrivate ? 'eye-off' : 'eye', 16);
+    btn.title = isPrivate ? 'Revelar valores (Modo Privacidade ativo)' : 'Ocultar valores (Modo Privacidade)';
+  }
+}
+
+function restorePrivacyMode() {
+  if (typeof document === 'undefined') return;
+  try {
+    if (localStorage.getItem('finance.privacy') === '1') {
+      document.body.classList.add('privacy-mode');
+    }
+  } catch {}
+  updatePrivacyIcon();
+}
+
+export function applyTheme(specificTheme = null) {
+  let pref = specificTheme || state.settings?.theme || 'auto';
+  if (pref === 'auto') {
+    pref = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  if (!THEMES.includes(pref)) pref = 'light';
+
+  document.documentElement.dataset.theme = pref;
+  const metaTheme = document.querySelector('meta[name=theme-color]');
+  if (metaTheme) metaTheme.content = THEME_COLORS[pref] || '#1B3A4B';
+
+  const t = document.getElementById('themeToggle');
+  if (t) {
+    const isDark = pref !== 'light';
+    t.innerHTML = `${icon(isDark ? 'sun' : 'moon', 15)} ${THEME_LABELS[pref] || 'Tema'}`;
+  }
+}
+
+export async function cycleTheme() {
+  if (typeof document === 'undefined') return;
+  const currentTheme = document.documentElement.dataset.theme || 'light';
+  const idx = THEMES.indexOf(currentTheme);
+  const nextTheme = THEMES[(idx + 1) % THEMES.length];
+  state.settings.theme = nextTheme;
+  applyTheme(nextTheme);
+  render(true);
+  const { api } = await import('./api.js');
+  api.put('/settings', { theme: nextTheme }, { silent: true }).catch(() => {});
+}
+if (typeof window !== 'undefined') window.cycleTheme = cycleTheme;
+
+if (typeof matchMedia !== 'undefined') {
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (state.settings?.theme === 'auto') { applyTheme(); render(true); }
+  });
+}
 
 function renderNav() {
   const route = location.hash.replace(/^#\/?/, '').split('?')[0] || 'overview';
@@ -68,29 +145,48 @@ subscribe(event => {
   if (event === 'reference') { applyTheme(); }
 });
 
-window.addEventListener('hashchange', () => render());
-document.getElementById('fab').onclick = () => openTransactionModal();
-document.getElementById('themeToggle').onclick = async () => {
-  const dark = document.documentElement.dataset.theme === 'dark';
-  state.settings.theme = dark ? 'light' : 'dark';
-  applyTheme();
-  render(true);
-  const { api } = await import('./api.js');
-  api.put('/settings', { theme: state.settings.theme }, { silent: true }).catch(() => {});
-};
-document.addEventListener('keydown', e => {
-  if (e.key === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey && !['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) && !document.querySelector('.modal')) openTransactionModal();
-});
+if (typeof window !== 'undefined') {
+  window.addEventListener('hashchange', () => render());
 
-(async () => {
-  restorePeriod();
-  applyTheme();
-  try {
-    await loadReference();
-    const { api } = await import('./api.js');
-    document.getElementById('syncState').textContent = api.isLocal() ? 'Online (Demo)' : 'Conectado';
-  } catch {
-    document.getElementById('syncState').textContent = 'Sem conexão';
-  }
-  render();
-})();
+  document.getElementById('fab')?.addEventListener('click', () => openTransactionModal());
+  document.getElementById('themeToggle')?.addEventListener('click', () => cycleTheme());
+  document.getElementById('searchBtn')?.addEventListener('click', () => openCommandPalette());
+  document.getElementById('privacyBtn')?.addEventListener('click', () => togglePrivacyMode());
+
+  document.addEventListener('keydown', e => {
+    // Ctrl + K or Cmd + K: Command Palette
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      openCommandPalette();
+      return;
+    }
+    // Ignore single-key shortcuts when typing in inputs
+    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) || document.querySelector('.modal')) {
+      return;
+    }
+    // Key 'n': new transaction
+    if (e.key === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      openTransactionModal();
+    }
+    // Key 'p': toggle privacy
+    if (e.key === 'p' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      togglePrivacyMode();
+    }
+  });
+
+  (async () => {
+    restorePeriod();
+    restorePrivacyMode();
+    applyTheme();
+    try {
+      await loadReference();
+      const { api } = await import('./api.js');
+      const syncEl = document.getElementById('syncState');
+      if (syncEl) syncEl.textContent = api.isLocal() ? 'Online (Demo)' : 'Conectado';
+    } catch {
+      const syncEl = document.getElementById('syncState');
+      if (syncEl) syncEl.textContent = 'Sem conexão';
+    }
+    render();
+  })();
+}

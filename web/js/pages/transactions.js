@@ -20,6 +20,11 @@ export async function render(view, tools, params) {
           ${state.cards.map(c => `<option value="card:${c.id}" ${c.id === filters.card_id ? 'selected' : ''}>${esc(c.name)} (cartão)</option>`).join('')}</select>
         <select id="f-kind" aria-label="Tipo"><option value="">Todos os tipos</option><option value="expense">Gastos</option><option value="income">Receitas</option><option value="transfer">Transferências</option></select>
         <select id="f-status" aria-label="Situação"><option value="">Efetivados e previstos</option><option value="settled">Só efetivados</option><option value="planned" ${filters.status === 'planned' ? 'selected' : ''}>Só previstos</option></select>
+        <div class="inline" style="flex:1 1 200px">
+          <input type="date" id="f-from" aria-label="Data inicial" style="min-width:130px;font-size:12px;padding:6px 8px">
+          <span style="color:var(--ink-3)">até</span>
+          <input type="date" id="f-to" aria-label="Data final" style="min-width:130px;font-size:12px;padding:6px 8px">
+        </div>
         <label class="check" style="flex:0 0 auto"><input type="checkbox" id="f-all" ${filters.all ? 'checked' : ''}> Todos os meses</label>
       </div>
       <div class="table-wrap"><table>
@@ -36,6 +41,8 @@ export async function render(view, tools, params) {
   q('#f-src').onchange = e => { const [k, id] = e.target.value.split(':'); filters.account_id = k === 'acc' ? id : ''; filters.card_id = k === 'card' ? id : ''; page = 1; load(); };
   q('#f-kind').onchange = e => { filters.kind = e.target.value; page = 1; load(); };
   q('#f-status').onchange = e => { filters.status = e.target.value; page = 1; load(); };
+  q('#f-from').onchange = e => { filters.customFrom = e.target.value; page = 1; load(); };
+  q('#f-to').onchange = e => { filters.customTo = e.target.value; page = 1; load(); };
   q('#f-all').onchange = e => { filters.all = e.target.checked; page = 1; load(); };
 
   async function load() {
@@ -43,7 +50,16 @@ export async function render(view, tools, params) {
     const last = new Date(state.year, state.month, 0).getDate();
     const p = { ...filters, page, page_size: 200 };
     delete p.all;
-    if (!filters.all) { p.from = `${key}-01`; p.to = `${key}-${String(last).padStart(2, '0')}`; }
+    delete p.customFrom;
+    delete p.customTo;
+
+    if (filters.customFrom || filters.customTo) {
+      if (filters.customFrom) p.from = filters.customFrom;
+      if (filters.customTo) p.to = filters.customTo;
+    } else if (!filters.all) {
+      p.from = `${key}-01`;
+      p.to = `${key}-${String(last).padStart(2, '0')}`;
+    }
     const r = await api.get('/transactions', p);
     const rows = r.items;
     let html = '', lastDate = null, dayTotal = 0;
